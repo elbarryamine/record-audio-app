@@ -23,7 +23,6 @@ const AudioUploadScreen: React.FC = () => {
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const audioPlayer = useAudioPlayer(audioSource);
   const playerStatus = useAudioPlayerStatus(audioPlayer);
-
   const hasRecorded = !!currentRecording;
 
   // Update audio source when current recording changes
@@ -34,14 +33,6 @@ const AudioUploadScreen: React.FC = () => {
       setAudioSource(null);
     }
   }, [currentRecording]);
-
-  const handleStartRecording = async () => {
-    await startRecording();
-  };
-
-  const handleStopRecording = async () => {
-    await stopRecording();
-  };
 
   const handleDeleteRecording = () => {
     if (currentRecording) {
@@ -92,8 +83,8 @@ const AudioUploadScreen: React.FC = () => {
               recordingName={currentRecording?.name || ''}
               isPlaying={playerStatus.playing}
               isUploading={isUploading}
-              onStartRecording={handleStartRecording}
-              onStopRecording={handleStopRecording}
+              onStartRecording={startRecording}
+              onStopRecording={stopRecording}
               onDeleteRecording={handleDeleteRecording}
               onPlayAudio={handlePlayAudio}
               onUploadAudio={handleUploadAudio}
