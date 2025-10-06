@@ -15,7 +15,6 @@ type AudioRecording = {
 const useAudioRecording = () => {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
-  const [recordings, setRecordings] = useState<AudioRecording[]>([]);
   const [currentRecording, setCurrentRecording] = useState<AudioRecording | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -70,7 +69,6 @@ const useAudioRecording = () => {
           error: null,
         };
 
-        setRecordings((prev) => [...prev, newRecording]);
         setCurrentRecording(newRecording);
       }
     } catch (error) {
@@ -78,96 +76,40 @@ const useAudioRecording = () => {
     }
   }, [audioRecorder]);
 
-  const deleteRecording = useCallback(
-    async (id: string) => {
-      try {
-        // Find the recording to get its URI
-        const recordingToDelete = recordings.find((rec) => rec.id === id);
-        if (!recordingToDelete?.uri) return;
+  const deleteRecording = useCallback(async () => {
+    try {
+      if (!currentRecording || !currentRecording.uri) return;
 
-        // Delete the file from the file system using
-        await FileSystem.deleteAsync(recordingToDelete.uri, { idempotent: true });
+      // Delete the file from the file system
+      await FileSystem.deleteAsync(currentRecording.uri, { idempotent: true });
 
-        // Remove from recordings list
-        setRecordings((prev) => prev.filter((rec) => rec.id !== id));
+      // Clear current recording
+      setCurrentRecording(null);
+    } catch (error) {
+      console.error('Error deleting recording file:', error);
+      // Still clear current recording even if file deletion fails
+      setCurrentRecording(null);
+    }
+  }, [currentRecording]);
 
-        // Clear current recording if it's the one being deleted
-        if (currentRecording?.id === id) {
-          setCurrentRecording(null);
-        }
-      } catch (error) {
-        console.error('Error deleting recording file:', error);
-        // Still remove from state even if file deletion fails
-        setRecordings((prev) => prev.filter((rec) => rec.id !== id));
-        if (currentRecording?.id === id) {
-          setCurrentRecording(null);
-        }
-      }
-    },
-    [currentRecording, recordings]
-  );
-
-  const uploadRecording = useCallback(
-    async (recording: AudioRecording) => {
-      try {
-        setIsUploading(true);
-        const index = recordings.findIndex((rec) => rec.id === recording.id);
-        if (index === -1) return;
-
-        // Update loading state
-        setRecordings((prev) => {
-          const updated = [...prev];
-          updated[index] = { ...updated[index], loading: true, error: null };
-          return updated;
-        });
-
-        // Simulate upload delay
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        // Update success state
-        setRecordings((prev) => {
-          const updated = [...prev];
-          updated[index] = { ...updated[index], loading: false, error: null };
-          return updated;
-        });
-
-        // Show fake success alert
-        alert(`Audio "${recording.name}" uploaded successfully!`);
-
-        return 'fake-filename.mp3';
-      } catch (error) {
-        console.error('Upload error:', error);
-
-        // Update error state
-        setRecordings((prev) => {
-          const updated = [...prev];
-          const index = updated.findIndex((rec) => rec.id === recording.id);
-          if (index !== -1) {
-            updated[index] = { ...updated[index], loading: false, error: 'Upload failed' };
-          }
-          return updated;
-        });
-
-        // Show fake error alert
-        alert('Upload failed. Please try again.');
-
-        throw error;
-      } finally {
-        setIsUploading(false);
-      }
-    },
-    [recordings]
-  );
-
-  const clearCurrentRecording = useCallback(() => {
-    setCurrentRecording(null);
+  const uploadRecording = useCallback(async (recording: AudioRecording) => {
+    try {
+      setIsUploading(true);
+      // Simulate upload delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log('Mock: Uploading recording', recording.id);
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
   }, []);
 
   return {
     // Recording state
     isRecording: recorderState.isRecording,
     currentRecording,
-    recordings,
     isUploading,
 
     // Recording actions
@@ -175,7 +117,6 @@ const useAudioRecording = () => {
     stopRecording,
     deleteRecording,
     uploadRecording,
-    clearCurrentRecording,
   };
 };
 

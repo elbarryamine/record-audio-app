@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Box from '@/components/Themed/Box';
 import Stack from '@/components/Themed/Stack';
 import SafeAreaView from '@/components/Themed/SafeAreaView';
@@ -17,29 +17,11 @@ const AudioUploadScreen: React.FC = () => {
     stopRecording,
     deleteRecording,
     uploadRecording,
-    clearCurrentRecording,
   } = useAudioRecording();
 
-  const [audioSource, setAudioSource] = useState<string | null>(null);
-  const audioPlayer = useAudioPlayer(audioSource);
+  const audioPlayer = useAudioPlayer(currentRecording?.uri || null);
   const playerStatus = useAudioPlayerStatus(audioPlayer);
   const hasRecorded = !!currentRecording;
-
-  // Update audio source when current recording changes
-  useEffect(() => {
-    if (currentRecording?.uri) {
-      setAudioSource(currentRecording.uri);
-    } else {
-      setAudioSource(null);
-    }
-  }, [currentRecording]);
-
-  const handleDeleteRecording = () => {
-    if (currentRecording) {
-      deleteRecording(currentRecording.id);
-      clearCurrentRecording();
-    }
-  };
 
   const handlePlayAudio = () => {
     if (audioPlayer && currentRecording) {
@@ -58,9 +40,12 @@ const AudioUploadScreen: React.FC = () => {
   const handleUploadAudio = async () => {
     if (currentRecording) {
       try {
+        // uploading recording
         await uploadRecording(currentRecording);
-        // Handle successful upload
-        console.log('Audio uploaded successfully');
+        // deleting recording
+        deleteRecording();
+        // alert
+        alert('Audio uploaded successfully and deleted localy');
       } catch (error) {
         console.error('Upload failed:', error);
         // Handle upload error
@@ -85,7 +70,7 @@ const AudioUploadScreen: React.FC = () => {
               isUploading={isUploading}
               onStartRecording={startRecording}
               onStopRecording={stopRecording}
-              onDeleteRecording={handleDeleteRecording}
+              onDeleteRecording={deleteRecording}
               onPlayAudio={handlePlayAudio}
               onUploadAudio={handleUploadAudio}
             />

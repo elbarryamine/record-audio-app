@@ -42,7 +42,7 @@ if (!status.granted) {
 ### Start/Stop Recording
 
 **File**: `src/hooks/useAudioRecording.ts`  
-**Lines**: 46-58 (start), 60-84 (stop)  
+**Lines**: 46-58 (start), 60-77 (stop)  
 **Functions**: `startRecording()`, `stopRecording()`
 
 ```typescript
@@ -52,7 +52,7 @@ const startRecording = useCallback(async () => {
   audioRecorder.record();
 }, [audioRecorder]);
 
-// Stop recording & add to recordings array
+// Stop recording & set as current recording
 const stopRecording = useCallback(async () => {
   await audioRecorder.stop();
   if (audioRecorder.uri) {
@@ -64,7 +64,6 @@ const stopRecording = useCallback(async () => {
       loading: false,
       error: null,
     };
-    setRecordings((prev) => [...prev, newRecording]);
     setCurrentRecording(newRecording);
   }
 }, [audioRecorder]);
@@ -73,59 +72,50 @@ const stopRecording = useCallback(async () => {
 ### Mock Upload & Success/Fail Handling
 
 **File**: `src/hooks/useAudioRecording.ts`  
-**Lines**: 110-160  
+**Lines**: 98-122  
 **Function**: `uploadRecording()`
 
 ```typescript
-const uploadRecording = useCallback(
-  async (recording: AudioRecording) => {
-    try {
-      setIsUploading(true);
-      // Simulate upload delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      // Show fake success alert
-      alert(`Audio "${recording.name}" uploaded successfully!`);
-      return 'fake-filename.mp3';
-    } catch (error) {
-      // Show fake error alert
-      alert('Upload failed. Please try again.');
-      throw error;
-    } finally {
-      setIsUploading(false);
-    }
-  },
-  [recordings]
-);
+const uploadRecording = useCallback(async (recording: AudioRecording) => {
+  try {
+    setIsUploading(true);
+    // Simulate upload delay
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Delete recording after upload
+    deleteRecording();
+    // Show fake success alert
+    alert(`Audio "${recording.name}" uploaded successfully! and recording deleted`);
+    return 'fake-filename.mp3';
+  } catch (error) {
+    // Show fake error alert
+    alert('Upload failed. Please try again.');
+    throw error;
+  } finally {
+    setIsUploading(false);
+  }
+}, []);
 ```
 
 ### Delete Local File
 
 **File**: `src/hooks/useAudioRecording.ts`  
-**Lines**: 86-108  
+**Lines**: 79-96  
 **Function**: `deleteRecording()`
 
 ```typescript
-const deleteRecording = useCallback(
-  async (id: string) => {
-    try {
-      const recordingToDelete = recordings.find((rec) => rec.id === id);
-      if (!recordingToDelete?.uri) return;
+const deleteRecording = useCallback(async () => {
+  try {
+    if (!currentRecording || !currentRecording.uri) return;
 
-      // Delete the file from the file system
-      await FileSystem.deleteAsync(recordingToDelete.uri, { idempotent: true });
+    // Delete the file from the file system
+    await FileSystem.deleteAsync(currentRecording.uri, { idempotent: true });
 
-      // Remove from recordings list
-      setRecordings((prev) => prev.filter((rec) => rec.id !== id));
-
-      // Clear current recording if it's the one being deleted
-      if (currentRecording?.id === id) {
-        setCurrentRecording(null);
-      }
-    } catch (error) {
-      console.error('Error deleting recording file:', error);
-      // Still remove from state even if file deletion fails
-    }
-  },
-  [currentRecording, recordings]
-);
+    // Clear current recording
+    setCurrentRecording(null);
+  } catch (error) {
+    console.error('Error deleting recording file:', error);
+    // Still clear current recording even if file deletion fails
+    setCurrentRecording(null);
+  }
+}, [currentRecording]);
 ```
